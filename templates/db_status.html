@@ -1,0 +1,207 @@
+{% extends "base.html" %}
+
+{% block title %}Database Diagnostics &amp; Schema{% endblock %}
+{% block page_title %}DBMS Connection &amp; Schema Diagnostics{% endblock %}
+
+{% block content %}
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 24px;">
+    <!-- CARD 1: ACTIVE DATABASE STATUS -->
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <ellipse cx="12" cy="5" rx="9" ry="3"/>
+                    <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/>
+                    <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>
+                </svg>
+                Database Engine Status
+            </h3>
+            {% if status.mysql_online %}
+                <span class="badge badge-present" style="font-size: 13px;">MySQL Connected</span>
+            {% else %}
+                <span class="badge" style="background: #eff6ff; color: #1d4ed8; border: 1px solid #bfdbfe; font-size: 13px;">Local SQLite Mode</span>
+            {% endif %}
+        </div>
+        <div class="card-body">
+            <div style="display: flex; flex-direction: column; gap: 14px; font-size: 14px;">
+                <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border-subtle); padding-bottom: 8px;">
+                    <span style="color: var(--text-muted); font-weight: 500;">Active Engine</span>
+                    <strong style="color: var(--text-main); text-transform: uppercase;">{{ status.active_engine }}</strong>
+                </div>
+                <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border-subtle); padding-bottom: 8px;">
+                    <span style="color: var(--text-muted); font-weight: 500;">MySQL Host</span>
+                    <code>{{ status.mysql_host }}:{{ status.mysql_port }}</code>
+                </div>
+                <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border-subtle); padding-bottom: 8px;">
+                    <span style="color: var(--text-muted); font-weight: 500;">MySQL Database</span>
+                    <code>{{ status.mysql_db }}</code>
+                </div>
+                <div style="display: flex; justify-content: space-between; border-bottom: 1px solid var(--border-subtle); padding-bottom: 8px;">
+                    <span style="color: var(--text-muted); font-weight: 500;">MySQL User</span>
+                    <code>{{ status.mysql_user }}</code>
+                </div>
+                <div style="display: flex; justify-content: space-between; padding-top: 4px;">
+                    <span style="color: var(--text-muted); font-weight: 500;">Connection Health</span>
+                    <span class="{% if status.mysql_online %}text-success{% else %}text-warning{% endif %}" style="font-size: 13px; font-weight: 600;">
+                        {{ status.mysql_message }}
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- CARD 2: HOW TO ACTIVATE MYSQL IN XAMPP / WORKBENCH -->
+    <div class="card">
+        <div class="card-header">
+            <h3 class="card-title">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"/>
+                    <line x1="12" y1="16" x2="12" y2="12"/>
+                    <line x1="12" y1="8" x2="12.01" y2="8"/>
+                </svg>
+                MySQL Connection Guide (For Viva / Lab)
+            </h3>
+        </div>
+        <div class="card-body" style="font-size: 13px; line-height: 1.6; color: var(--text-main);">
+            <ol style="margin-left: 20px; display: flex; flex-direction: column; gap: 8px;">
+                <li>
+                    <strong>XAMPP Control Panel:</strong> Start the <strong>MySQL</strong> module (port 3306). Default user is <code>root</code> with empty password.
+                </li>
+                <li>
+                    <strong>Import Schema:</strong> Run <code>schema.sql</code> in phpMyAdmin (<code>http://localhost/phpmyadmin</code>) or MySQL Workbench.
+                </li>
+                <li>
+                    <strong>Configure Credentials:</strong> Modify <code>db_config.py</code> or create a <code>.env</code> file:
+                    <pre style="background: #f1f5f9; padding: 6px 10px; border-radius: 6px; font-size: 12px; margin-top: 4px;">MYSQL_HOST=127.0.0.1
+MYSQL_PORT=3306
+MYSQL_USER=root
+MYSQL_PASSWORD=your_password
+MYSQL_DB=student_attendance</pre>
+                </li>
+                <li>
+                    <strong>Auto Fallback:</strong> If MySQL is stopped, this system automatically runs on local SQLite without downtime.
+                </li>
+            </ol>
+        </div>
+    </div>
+</div>
+
+<!-- RELATIONAL SCHEMA & INTEGRITY CONSTRAINTS -->
+<div class="card" style="margin-bottom: 24px;">
+    <div class="card-header">
+        <h3 class="card-title">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                <line x1="3" y1="9" x2="21" y2="9"/>
+                <line x1="9" y1="21" x2="9" y2="9"/>
+            </svg>
+            Relational Database Design &amp; Integrity Constraints
+        </h3>
+    </div>
+    <div class="card-body" style="padding: 0;">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Table Name</th>
+                    <th>Columns</th>
+                    <th>Primary Key</th>
+                    <th>Foreign Key &amp; Cascade</th>
+                    <th>Unique Constraints</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>admin</strong></td>
+                    <td style="font-size: 12px;">admin_id, username, password_hash, full_name, email, created_at</td>
+                    <td><code>admin_id</code></td>
+                    <td style="color: var(--text-muted);">-</td>
+                    <td><code>username</code>, <code>email</code></td>
+                </tr>
+                <tr>
+                    <td><strong>students</strong></td>
+                    <td style="font-size: 12px;">student_id, roll_number, name, department, year, email, created_at</td>
+                    <td><code>student_id</code></td>
+                    <td style="color: var(--text-muted);">-</td>
+                    <td><code>roll_number</code>, <code>email</code></td>
+                </tr>
+                <tr>
+                    <td><strong>attendance</strong></td>
+                    <td style="font-size: 12px;">attendance_id, student_id, attendance_date, status, remarks, marked_at</td>
+                    <td><code>attendance_id</code></td>
+                    <td>
+                        <code>student_id &rarr; students(student_id)</code><br>
+                        <span class="badge badge-dept" style="font-size: 11px;">ON DELETE CASCADE</span>
+                    </td>
+                    <td>
+                        <code>UNIQUE (student_id, attendance_date)</code><br>
+                        <span style="font-size: 11px; color: var(--text-muted);">Prevents duplicate marking on same date</span>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- IMPORTANT SQL QUERIES USED IN PROJECT -->
+<div class="card">
+    <div class="card-header">
+        <h3 class="card-title">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="16 18 22 12 16 6"/>
+                <polyline points="8 6 2 12 8 18"/>
+            </svg>
+            Important SQL Queries Used in the Project
+        </h3>
+    </div>
+    <div class="card-body">
+        <div style="display: flex; flex-direction: column; gap: 18px;">
+            <div>
+                <h4 style="font-size: 14px; font-weight: 700; margin-bottom: 6px; color: var(--primary-700);">
+                    1. Attendance Percentage Calculation (Aggregation with GROUP BY &amp; CASE WHEN)
+                </h4>
+                <pre style="background: #0f172a; color: #f8fafc; padding: 14px; border-radius: 8px; font-size: 13px; overflow-x: auto;">SELECT 
+    s.student_id,
+    s.roll_number,
+    s.name,
+    s.department,
+    s.year,
+    COUNT(a.attendance_id) AS total_classes,
+    SUM(CASE WHEN a.status = 'Present' THEN 1 ELSE 0 END) AS present_count,
+    SUM(CASE WHEN a.status = 'Absent' THEN 1 ELSE 0 END) AS absent_count,
+    CASE 
+        WHEN COUNT(a.attendance_id) = 0 THEN 0.0
+        ELSE ROUND((SUM(CASE WHEN a.status = 'Present' THEN 1 ELSE 0 END) * 100.0) / COUNT(a.attendance_id), 2)
+    END AS attendance_percentage
+FROM students s
+LEFT JOIN attendance a ON s.student_id = a.student_id
+GROUP BY s.student_id, s.roll_number, s.name, s.department, s.year
+ORDER BY s.roll_number ASC;</pre>
+            </div>
+
+            <div>
+                <h4 style="font-size: 14px; font-weight: 700; margin-bottom: 6px; color: var(--primary-700);">
+                    2. Insert or Update Attendance Batch (Duplicate Prevention via ON DUPLICATE KEY UPDATE)
+                </h4>
+                <pre style="background: #0f172a; color: #f8fafc; padding: 14px; border-radius: 8px; font-size: 13px; overflow-x: auto;">INSERT INTO attendance (student_id, attendance_date, status, remarks)
+VALUES (%s, %s, %s, %s)
+ON DUPLICATE KEY UPDATE 
+    status = VALUES(status),
+    remarks = VALUES(remarks);</pre>
+            </div>
+
+            <div>
+                <h4 style="font-size: 14px; font-weight: 700; margin-bottom: 6px; color: var(--primary-700);">
+                    3. Daily Attendance Metrics for Dashboard
+                </h4>
+                <pre style="background: #0f172a; color: #f8fafc; padding: 14px; border-radius: 8px; font-size: 13px; overflow-x: auto;">SELECT 
+    COUNT(s.student_id) AS total_students,
+    SUM(CASE WHEN a.status = 'Present' THEN 1 ELSE 0 END) AS present_today,
+    SUM(CASE WHEN a.status = 'Absent' THEN 1 ELSE 0 END) AS absent_today
+FROM students s
+LEFT JOIN attendance a ON s.student_id = a.student_id AND a.attendance_date = CURRENT_DATE();</pre>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

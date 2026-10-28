@@ -1,0 +1,203 @@
+{% extends "base.html" %}
+
+{% block title %}Attendance Reports{% endblock %}
+{% block page_title %}Attendance Reports &amp; Analytics{% endblock %}
+
+{% block content %}
+<!-- REPORT FILTERS TOOLBAR -->
+<div class="toolbar">
+    <form action="{{ url_for('reports') }}" method="GET" class="toolbar-group"
+        style="width: 100%; justify-content: space-between;">
+        <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
+            <!-- Student Select -->
+            <select name="student_id" class="form-control" style="min-width: 200px;">
+                <option value="All">All Students</option>
+                {% for st in all_students %}
+                <option value="{{ st.student_id }}" {% if selected_student|string==st.student_id|string %}selected{%
+                    endif %}>
+                    {{ st.roll_number }} - {{ st.name }}
+                </option>
+                {% endfor %}
+            </select>
+
+            <!-- Department Select -->
+            <select name="department" class="form-control">
+                <option value="All" {% if selected_dept=='All' %}selected{% endif %}>All Departments</option>
+                {% for dept in departments %}
+                <option value="{{ dept }}" {% if selected_dept==dept %}selected{% endif %}>{{ dept }}</option>
+                {% endfor %}
+            </select>
+
+            <!-- Year Select -->
+            <select name="year" class="form-control">
+                <option value="All" {% if selected_year=='All' %}selected{% endif %}>All Years</option>
+                <option value="1" {% if selected_year=='1' %}selected{% endif %}>Year 1</option>
+                <option value="2" {% if selected_year=='2' %}selected{% endif %}>Year 2</option>
+                <option value="3" {% if selected_year=='3' %}selected{% endif %}>Year 3</option>
+                <option value="4" {% if selected_year=='4' %}selected{% endif %}>Year 4</option>
+            </select>
+
+            <!-- Date Range -->
+            <div style="display: flex; align-items: center; gap: 6px;">
+                <input type="date" name="start_date" class="form-control" value="{{ start_date }}" title="From Date">
+                <span style="font-size: 12px; color: var(--text-muted);">to</span>
+                <input type="date" name="end_date" class="form-control" value="{{ end_date }}" title="To Date">
+            </div>
+
+            <button type="submit" class="btn btn-primary btn-sm">Generate Report</button>
+            {% if selected_student != 'All' or selected_dept != 'All' or selected_year != 'All' or start_date or
+            end_date %}
+            <a href="{{ url_for('reports') }}" class="btn btn-secondary btn-sm">Reset</a>
+            {% endif %}
+        </div>
+
+        <!-- Export Buttons -->
+        <div style="display: flex; gap: 8px;">
+            <button type="button" class="btn btn-secondary btn-sm"
+                onclick="exportReportToCSV('student_attendance_report.csv')">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                    <polyline points="7 10 12 15 17 10" />
+                    <line x1="12" y1="15" x2="12" y2="3" />
+                </svg>
+                Export CSV
+            </button>
+            <button type="button" class="btn btn-secondary btn-sm" onclick="printReport()">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="6 9 6 2 18 2 18 9" />
+                    <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
+                    <rect x="6" y="14" width="12" height="8" />
+                </svg>
+                Print
+            </button>
+        </div>
+    </form>
+</div>
+
+<!-- SQL FORMULA INFO BOX (FOR DBMS PROJECT VIVA PRESENTATION) -->
+<div
+    style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: var(--radius-md); padding: 14px 18px; margin-bottom: 20px; font-size: 13px; color: #1e40af; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
+    <div>
+        <strong>DBMS Query Aggregation Formula:</strong>
+        <code
+            style="background: #ffffff; padding: 3px 8px; border-radius: 4px; margin-left: 6px; font-weight: 600; color: #1d4ed8;">
+            Attendance % = (COUNT(Present) &times; 100.0) / COUNT(Total Classes)
+        </code>
+    </div>
+    <div style="font-size: 12px; color: #3b82f6;">
+        University Criteria: Minimum <strong>75%</strong> Attendance for Final Exam Eligibility
+    </div>
+</div>
+
+<!-- REPORTS TABLE -->
+<div class="table-container">
+    <table class="data-table">
+        <thead>
+            <tr>
+                <th style="width: 110px;">Roll No</th>
+                <th>Student Name</th>
+                <th>Department</th>
+                <th style="width: 70px;">Year</th>
+                <th style="text-align: center; width: 100px;">Total Classes</th>
+                <th style="text-align: center; width: 90px;">Present</th>
+                <th style="text-align: center; width: 90px;">Absent</th>
+                <th style="width: 170px;">Attendance %</th>
+                <th style="width: 120px; text-align: center;">Eligibility</th>
+                <th style="width: 90px; text-align: right;">Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% if reports %}
+            {% for r in reports %}
+            {% set pct = r.attendance_percentage %}
+            <tr>
+                <td><span class="badge badge-roll">{{ r.roll_number }}</span></td>
+                <td>
+                    <strong style="color: var(--text-main);">{{ r.name }}</strong>
+                </td>
+                <td><span class="badge badge-dept">{{ r.department }}</span></td>
+                <td>Year {{ r.year }}</td>
+                <td style="text-align: center; font-weight: 600;">{{ r.total_classes }}</td>
+                <td style="text-align: center;">
+                    <span class="badge badge-present">{{ r.present_count }}</span>
+                </td>
+                <td style="text-align: center;">
+                    <span class="badge badge-absent">{{ r.absent_count }}</span>
+                </td>
+                <td>
+                    <div class="pct-bar-wrapper">
+                        <div class="pct-bar">
+                            <div class="pct-fill {% if pct >= 75 %}high{% elif pct >= 60 %}medium{% else %}low{% endif %}"
+                                style="--pct: {{ pct }}%; width: var(--pct);"></div>
+                        </div>
+                        <span
+                            class="{% if pct >= 75 %}text-success{% elif pct >= 60 %}text-warning{% else %}text-danger{% endif %}"
+                            style="font-weight: 700; font-size: 13px;">
+                            {{ pct }}%
+                        </span>
+                    </div>
+                </td>
+                <td style="text-align: center;">
+                    {% if r.total_classes == 0 %}
+                    <span class="badge badge-unmarked">No Data</span>
+                    {% elif pct >= 75 %}
+                    <span class="badge badge-present" title="Eligible for University Examinations">Eligible</span>
+                    {% elif pct >= 65 %}
+                    <span class="badge" style="background: #fffbeb; color: #b45309; border: 1px solid #fde68a;"
+                        title="Borderline: Warning Notice Required">Warning</span>
+                    {% else %}
+                    <span class="badge badge-absent" title="Shortage of Attendance: Detention Warning">Shortage</span>
+                    {% endif %}
+                </td>
+                <td style="text-align: right;">
+                    <button type="button" class="btn btn-secondary btn-sm"
+                        data-id="{{ r.student_id }}"
+                        onclick="viewStudentHistory(this.dataset.id)" title="View Detailed Date-wise Log">
+                        Log
+                    </button>
+                </td>
+            </tr>
+            {% endfor %}
+            {% else %}
+            <tr>
+                <td colspan="10" style="text-align: center; padding: 36px; color: var(--text-muted);">
+                    No attendance records found for the selected filters.
+                </td>
+            </tr>
+            {% endif %}
+        </tbody>
+    </table>
+</div>
+
+<!-- ATTENDANCE HISTORY MODAL -->
+<div class="modal-overlay" id="studentHistoryModal">
+    <div class="modal-content" style="max-width: 620px;">
+        <div class="modal-header">
+            <h3 class="modal-title" id="historyModalTitle">Student Attendance History</h3>
+            <button type="button" class="modal-close">&times;</button>
+        </div>
+        <div class="modal-body" style="padding: 0; max-height: 420px; overflow-y: auto;">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Status</th>
+                        <th>Remarks</th>
+                        <th>Timestamp</th>
+                    </tr>
+                </thead>
+                <tbody id="studentHistoryBody">
+                    <tr>
+                        <td colspan="4" style="text-align:center; padding: 24px;">Loading records...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary btn-modal-cancel">Close</button>
+        </div>
+    </div>
+</div>
+{% endblock %}

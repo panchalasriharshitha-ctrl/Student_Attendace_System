@@ -1,0 +1,299 @@
+{% extends "base.html" %}
+
+{% block title %}Manage Students{% endblock %}
+{% block page_title %}Student Records Management{% endblock %}
+
+{% block content %}
+<!-- TOOLBAR & ACTIONS -->
+<div class="toolbar">
+    <!-- Server-side Filter Form -->
+    <form action="{{ url_for('students') }}" method="GET" class="toolbar-group">
+        <div style="position: relative;">
+            <input type="text" name="search" class="form-control" placeholder="Search name, roll, email..." value="{{ search_query }}" style="min-width: 220px;">
+        </div>
+
+        <select name="department" class="form-control" onchange="this.form.submit()">
+            <option value="All" {% if selected_dept == 'All' %}selected{% endif %}>All Departments</option>
+            {% for dept in departments %}
+                <option value="{{ dept }}" {% if selected_dept == dept %}selected{% endif %}>{{ dept }}</option>
+            {% endfor %}
+        </select>
+
+        <select name="year" class="form-control" onchange="this.form.submit()">
+            <option value="All" {% if selected_year == 'All' %}selected{% endif %}>All Years</option>
+            <option value="1" {% if selected_year == '1' %}selected{% endif %}>Year 1</option>
+            <option value="2" {% if selected_year == '2' %}selected{% endif %}>Year 2</option>
+            <option value="3" {% if selected_year == '3' %}selected{% endif %}>Year 3</option>
+            <option value="4" {% if selected_year == '4' %}selected{% endif %}>Year 4</option>
+        </select>
+
+        <button type="submit" class="btn btn-secondary btn-sm">Filter</button>
+        {% if search_query or selected_dept != 'All' or selected_year != 'All' %}
+            <a href="{{ url_for('students') }}" class="btn btn-secondary btn-sm" title="Clear Filters">Reset</a>
+        {% endif %}
+    </form>
+
+    <!-- Client-side Quick Filter & Add Student Button -->
+    <div class="toolbar-group">
+        <input type="text" id="quickFilterInput" class="form-control" placeholder="Quick find in table..." style="width: 170px;">
+        <button type="button" class="btn btn-primary" onclick="openModal('addStudentModal')">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="12" y1="5" x2="12" y2="19"/>
+                <line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+            <span>Add New Student</span>
+        </button>
+    </div>
+</div>
+
+<!-- STUDENTS TABLE -->
+<div class="table-container">
+    <table class="data-table" id="filterTable">
+        <thead>
+            <tr>
+                <th style="width: 120px;">Roll Number</th>
+                <th>Full Name</th>
+                <th>Department</th>
+                <th style="width: 80px;">Year</th>
+                <th>Email Address</th>
+                <th style="width: 220px; text-align: right;">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% if students %}
+                {% for s in students %}
+                    <tr>
+                        <td><span class="badge badge-roll">{{ s.roll_number }}</span></td>
+                        <td>
+                            <strong style="color: var(--text-main);">{{ s.name }}</strong>
+                        </td>
+                        <td><span class="badge badge-dept">{{ s.department }}</span></td>
+                        <td>Year {{ s.year }}</td>
+                        <td style="color: var(--text-muted);">{{ s.email }}</td>
+                        <td style="text-align: right;">
+                            <div style="display: inline-flex; gap: 6px; justify-content: flex-end;">
+                                <button type="button" 
+                                        class="btn btn-secondary btn-sm" 
+                                        data-id="{{ s.student_id }}"
+                                        onclick="viewStudentHistory(this.dataset.id)" 
+                                        title="View Attendance History">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <circle cx="12" cy="12" r="10"/>
+                                        <polyline points="12 6 12 12 16 14"/>
+                                    </svg>
+                                    History
+                                </button>
+                                <button type="button" 
+                                        class="btn btn-secondary btn-sm" 
+                                        onclick="openEditStudentModal(this)"
+                                        data-id="{{ s.student_id }}"
+                                        data-name="{{ s.name }}"
+                                        data-roll="{{ s.roll_number }}"
+                                        data-dept="{{ s.department }}"
+                                        data-year="{{ s.year }}"
+                                        data-email="{{ s.email }}"
+                                        title="Edit Student Information">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                                    </svg>
+                                    Edit
+                                </button>
+                                <button type="button" 
+                                        class="btn btn-danger btn-sm" 
+                                        onclick="openDeleteStudentModal(this)"
+                                        data-id="{{ s.student_id }}"
+                                        data-name="{{ s.name }}"
+                                        data-roll="{{ s.roll_number }}"
+                                        title="Delete Student Record">
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        <polyline points="3 6 5 6 21 6"/>
+                                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                                    </svg>
+                                    Delete
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                {% endfor %}
+            {% else %}
+                <tr>
+                    <td colspan="6" style="text-align: center; padding: 36px; color: var(--text-muted);">
+                        No student records found matching the specified criteria.
+                    </td>
+                </tr>
+            {% endif %}
+        </tbody>
+    </table>
+</div>
+
+<!-- ============================================================== -->
+<!-- 1. ADD STUDENT MODAL -->
+<!-- ============================================================== -->
+<div class="modal-overlay" id="addStudentModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 class="modal-title">Register New Student</h3>
+            <button type="button" class="modal-close">&times;</button>
+        </div>
+        <form action="{{ url_for('add_student_route') }}" method="POST">
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="add_name" class="form-label">Student Full Name *</label>
+                    <input type="text" id="add_name" name="name" class="form-input" placeholder="e.g. Aarav Sharma" required>
+                </div>
+                <div class="form-group">
+                    <label for="add_roll" class="form-label">Roll / University Registration Number *</label>
+                    <input type="text" id="add_roll" name="roll_number" class="form-input" placeholder="e.g. 24CS101" required>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
+                    <div class="form-group">
+                        <label for="add_department" class="form-label">Department *</label>
+                        <select id="add_department" name="department" class="form-input" required>
+                            <option value="">-- Select Dept --</option>
+                            <option value="Computer Science">Computer Science</option>
+                            <option value="Information Technology">Information Technology</option>
+                            <option value="Artificial Intelligence">Artificial Intelligence</option>
+                            <option value="Electronics &amp; Comm">Electronics &amp; Comm</option>
+                            <option value="Mechanical Eng">Mechanical Eng</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="add_year" class="form-label">Academic Year *</label>
+                        <select id="add_year" name="year" class="form-input" required>
+                            <option value="1">Year 1 (Freshman)</option>
+                            <option value="2" selected>Year 2 (Sophomore)</option>
+                            <option value="3">Year 3 (Junior)</option>
+                            <option value="4">Year 4 (Senior)</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="add_email" class="form-label">Official Student Email *</label>
+                    <input type="email" id="add_email" name="email" class="form-input" placeholder="e.g. student@college.edu" required>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary btn-modal-cancel">Cancel</button>
+                <button type="submit" class="btn btn-primary">Save Student</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ============================================================== -->
+<!-- 2. EDIT STUDENT MODAL -->
+<!-- ============================================================== -->
+<div class="modal-overlay" id="editStudentModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 class="modal-title">Edit Student Information</h3>
+            <button type="button" class="modal-close">&times;</button>
+        </div>
+        <form id="editStudentForm" method="POST">
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="edit_name" class="form-label">Student Full Name *</label>
+                    <input type="text" id="edit_name" name="name" class="form-input" required>
+                </div>
+                <div class="form-group">
+                    <label for="edit_roll" class="form-label">Roll Number *</label>
+                    <input type="text" id="edit_roll" name="roll_number" class="form-input" required>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
+                    <div class="form-group">
+                        <label for="edit_department" class="form-label">Department *</label>
+                        <select id="edit_department" name="department" class="form-input" required>
+                            <option value="Computer Science">Computer Science</option>
+                            <option value="Information Technology">Information Technology</option>
+                            <option value="Artificial Intelligence">Artificial Intelligence</option>
+                            <option value="Electronics &amp; Comm">Electronics &amp; Comm</option>
+                            <option value="Mechanical Eng">Mechanical Eng</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit_year" class="form-label">Academic Year *</label>
+                        <select id="edit_year" name="year" class="form-input" required>
+                            <option value="1">Year 1</option>
+                            <option value="2">Year 2</option>
+                            <option value="3">Year 3</option>
+                            <option value="4">Year 4</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="edit_email" class="form-label">Student Email *</label>
+                    <input type="email" id="edit_email" name="email" class="form-input" required>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary btn-modal-cancel">Cancel</button>
+                <button type="submit" class="btn btn-primary">Update Changes</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ============================================================== -->
+<!-- 3. DELETE CONFIRMATION MODAL -->
+<!-- ============================================================== -->
+<div class="modal-overlay" id="deleteStudentModal">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 class="modal-title" style="color: var(--danger);">Confirm Student Deletion</h3>
+            <button type="button" class="modal-close">&times;</button>
+        </div>
+        <form id="deleteStudentForm" method="POST">
+            <div class="modal-body">
+                <p style="margin-bottom: 12px; color: var(--text-main);">
+                    Are you sure you want to permanently delete student:
+                </p>
+                <div style="padding: 12px 16px; background: #fee2e2; border-radius: var(--radius-md); font-weight: 700; color: #991b1b; margin-bottom: 16px;" id="delete_student_name">
+                    Student Name
+                </div>
+                <div style="font-size: 13px; color: var(--text-muted); line-height: 1.5; background: #f8fafc; padding: 12px; border-radius: var(--radius-md); border: 1px solid var(--border-color);">
+                    <strong>DBMS Foreign Key Cascade:</strong><br>
+                    Due to the <code>ON DELETE CASCADE</code> constraint defined in the schema, all attendance records associated with this student will also be automatically removed from the <code>attendance</code> table.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary btn-modal-cancel">Cancel</button>
+                <button type="submit" class="btn btn-danger">Confirm Delete</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- ============================================================== -->
+<!-- 4. ATTENDANCE HISTORY MODAL -->
+<!-- ============================================================== -->
+<div class="modal-overlay" id="studentHistoryModal">
+    <div class="modal-content" style="max-width: 620px;">
+        <div class="modal-header">
+            <h3 class="modal-title" id="historyModalTitle">Student Attendance History</h3>
+            <button type="button" class="modal-close">&times;</button>
+        </div>
+        <div class="modal-body" style="padding: 0; max-height: 420px; overflow-y: auto;">
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Status</th>
+                        <th>Remarks</th>
+                        <th>Recorded At</th>
+                    </tr>
+                </thead>
+                <tbody id="studentHistoryBody">
+                    <tr>
+                        <td colspan="4" style="text-align:center; padding: 24px;">Loading records...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary btn-modal-cancel">Close</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
